@@ -201,7 +201,7 @@ def main(args):
 
         # PREPARES MODEL
         args.img_size = get_img_size(args.dataset)  # stores for metadata
-        model = init_specific_model(args.model_type, args.img_size, args.latent_dim)
+        model = init_specific_model(args.model_type, args.img_size, args.latent_dim, args.dataset)
         logger.info('Num parameters in model: {}'.format(get_n_param(model)))
 
         # TRAINS
