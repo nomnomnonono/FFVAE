@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 
 
 def latent_to_index(latents):
@@ -8,10 +9,20 @@ def latent_to_index(latents):
     return np.dot(latents, latents_bases).astype(int)
 
 
+def binarize_xpos(latent):
+    latent = latent >= 2
+    return latent
+
+
 def sample_latent(size=1):
     latents_sizes = np.array([3, 6, 40, 32, 32])
     samples = np.zeros((size, latents_sizes.size))
     for lat_i, lat_size in enumerate(latents_sizes):
-        samples[:, lat_i] = np.random.randint(lat_size, size=size)
+        if lat_i == 3:
+            b = [stats.bernoulli.rvs(p=0.92) if binarize_xpos(s) ==1 else stats.bernoulli.rvs(p=1-0.92) for s in samples[:, 0]]
+            samples[:, lat_i] = [np.random.randint(lat_size//2) if s == 0 else np.random.randint(lat_size//2) + lat_size//2 for s in b]
+        else:
+            samples[:, lat_i] = np.random.randint(lat_size, size=size)
 
     return samples
+    
