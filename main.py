@@ -213,7 +213,7 @@ def main(args):
                             n_data=len(train_loader.dataset),
                             device=device,
                             **vars(args))
-        trainer = Trainer(model, optimizer, loss_f,
+        trainer = Trainer(model, optimizer, loss_f, args.dataset,
                           device=device,
                           logger=logger,
                           save_dir=exp_dir,

@@ -7,10 +7,13 @@ from collections import defaultdict
 from tqdm import trange
 import torch
 from torch.nn import functional as F
+from torchvision import transforms
 
 from disvae.utils.modelIO import save_model
+from disvae.utils.dsprites import *
 
 
+DIR = os.path.abspath(os.path.dirname(__file__))
 TRAIN_LOSSES_LOGFILE = "train_losses.log"
 
 
@@ -43,7 +46,7 @@ class Trainer():
         Whether to use a progress bar for training.
     """
 
-    def __init__(self, model, optimizer, loss_f,
+    def __init__(self, model, optimizer, loss_f, dataset,
                  device=torch.device("cpu"),
                  logger=logging.getLogger(__name__),
                  save_dir="results",
@@ -53,6 +56,7 @@ class Trainer():
         self.device = device
         self.model = model.to(self.device)
         self.loss_f = loss_f
+        self.dataset = dataset
         self.optimizer = optimizer
         self.save_dir = save_dir
         self.is_progress_bar = is_progress_bar
@@ -79,19 +83,40 @@ class Trainer():
         """
         start = default_timer()
         self.model.train()
-        for epoch in range(epochs):
-            storer = defaultdict(list)
-            mean_epoch_loss = self._train_epoch(data_loader, storer, epoch)
-            self.logger.info('Epoch: {} Average loss per image: {:.2f}'.format(epoch + 1,
-                                                                               mean_epoch_loss))
-            self.losses_logger.log(epoch, storer)
 
-            if self.gif_visualizer is not None:
-                self.gif_visualizer()
+        if self.dataset == "dsprites":
+            dataset_zip = np.load(os.path.join(DIR, "../data/dsprites/dsprite_train.npz"))
+            imgs = dataset_zip["imgs"]
+            latents_values = dataset_zip["latents_values"]
+            transforms = transforms.Compose([transforms.ToTensor()])
+            for iter in range(3*10**5):
+                storer = defaultdict(list)
+                latents_sampled = sample_latent(size=64)
+                indices_sampled = latent_to_index(latents_sampled)
+                imgs_sampled = imgs[indices_sampled]
+                samples = torch.from_numpy(imgs_sampled.astype(np.float32))
+                samples = samples.view(64, 1, 64, 64)
+                iter_loss = self._train_iteration(samples, storer)
+                if (iter+1) % 1000 == 0:
+                    self.logger.info('Iter: {} Average loss per image: {:.2f}'.format(iter+ 1, iter_loss))
+                    self.losses_logger.log(iter, storer)
 
-            if epoch % checkpoint_every == 0:
-                save_model(self.model, self.save_dir,
-                           filename="model-{}.pt".format(epoch))
+                    if self.gif_visualizer is not None:
+                        self.gif_visualizer()
+                    
+                    save_model(self.model, self.save_dir, filename="model-{}.pt".format(iter+1))
+        else:
+            for epoch in range(epochs):
+                storer = defaultdict(list)
+                mean_epoch_loss = self._train_epoch(data_loader, storer, epoch)
+                self.logger.info('Epoch: {} Average loss per image: {:.2f}'.format(epoch + 1, mean_epoch_loss))
+                self.losses_logger.log(epoch, storer)
+
+                if self.gif_visualizer is not None:
+                    self.gif_visualizer()
+
+                if (epoch + 1) % checkpoint_every == 0:
+                    save_model(self.model, self.save_dir, filename="model-{}.pt".format(epoch+1))
 
         if self.gif_visualizer is not None:
             self.gif_visualizer.save_reset()
