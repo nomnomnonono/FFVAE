@@ -2,7 +2,6 @@
 Module containing the main VAE class.
 """
 from tkinter import N
-from zipfile import _ZipStream
 import torch
 from torch import nn, optim
 from torch.nn import functional as F
@@ -46,8 +45,8 @@ class VAE(nn.Module):
         self.latent_dim = latent_dim
         self.img_size = img_size
         self.num_pixels = self.img_size[1] * self.img_size[2]
-        self.encoder = encoder(img_size, self.latent_dim, dataset)
-        self.decoder = decoder(img_size, self.latent_dim, dataset)
+        self.encoder = encoder(img_size, dataset, self.latent_dim)
+        self.decoder = decoder(img_size, dataset, self.latent_dim)
         self.n_sens = n_sens
         self.sens_idx = list(range(self.n_sens))
         self.nonsens_idx = list(range(self.n_sens+1, self.latent_dim))

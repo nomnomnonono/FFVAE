@@ -42,7 +42,7 @@ class EncoderBurgess(nn.Module):
         hid_channels = 32
         kernel_size = 4
         hidden_dim = 256
-        self.latent_dim = latent_dim
+        self.latent_dim = int(latent_dim)
         self.img_size = img_size
         # Shape required to start transpose convs
         self.reshape = (hid_channels*2, kernel_size, kernel_size)

@@ -53,7 +53,7 @@ def parse_arguments(args_to_parse):
                          help='Disables CUDA training, even when have one.')
     general.add_argument('-s', '--seed', type=int, default=default_config['seed'],
                          help='Random seed. Can be `None` for stochastic behavior.')
-    general.add_argument('-n_sens', type=int,
+    general.add_argument('-n_sens', type=int, default=2,
                          help="Number of sensitive attribute.")
 
     # Learning options

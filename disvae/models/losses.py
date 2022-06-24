@@ -393,15 +393,15 @@ class BtcvaeLoss(BaseLoss):
 
         anneal_reg = (linear_annealing(0, 1, self.n_train_steps, self.steps_anneal)
                       if is_train else 1)
-
+        clf_loss_mean = (clf_loss[0] + clf_loss[1]) / 2.
         # total loss
-        loss = rec_loss + (self.alpha * clf_loss +
+        loss = rec_loss + (self.alpha * clf_loss_mean +
                            self.gamma* tc_loss +
                            anneal_reg * dw_kl_loss)
 
         if storer is not None:
             storer['loss'].append(loss.item())
-            storer['clf_loss'].append(clf_loss.item())
+            storer['clf_loss'].append(clf_loss_mean.item())
             storer['tc_loss'].append(tc_loss.item())
             storer['dw_kl_loss'].append(dw_kl_loss.item())
             # computing this for storing and comparaison purposes

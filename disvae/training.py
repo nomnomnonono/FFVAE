@@ -88,7 +88,7 @@ class Trainer():
             dataset_zip = np.load(os.path.join(DIR, "../data/dsprites/dsprite_train.npz"))
             imgs = dataset_zip["imgs"]
             latents_values = dataset_zip["latents_values"]
-            transforms = transforms.Compose([transforms.ToTensor()])
+            # transforms = transforms.Compose([transforms.ToTensor()])
             for iter in range(3*10**5):
                 storer = defaultdict(list)
                 latents_sampled = sample_latent(size=64)
