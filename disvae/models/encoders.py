@@ -45,18 +45,18 @@ class EncoderBurgess(nn.Module):
         self.latent_dim = latent_dim
         self.img_size = img_size
         # Shape required to start transpose convs
-        self.reshape = (hid_channels, kernel_size, kernel_size)
+        self.reshape = (hid_channels*2, kernel_size, kernel_size)
         n_chan = self.img_size[0]
 
         # Convolutional layers
         cnn_kwargs = dict(stride=2, padding=1)
         self.conv1 = nn.Conv2d(n_chan, hid_channels, kernel_size, **cnn_kwargs)
         self.conv2 = nn.Conv2d(hid_channels, hid_channels, kernel_size, **cnn_kwargs)
-        self.conv3 = nn.Conv2d(hid_channels, hid_channels, kernel_size, **cnn_kwargs)
+        self.conv3 = nn.Conv2d(hid_channels, hid_channels*2, kernel_size, **cnn_kwargs)
 
         # If input image is 64x64 do fourth convolution
         if self.img_size[1] == self.img_size[2] == 64:
-            self.conv_64 = nn.Conv2d(hid_channels, hid_channels, kernel_size, **cnn_kwargs)
+            self.conv_64 = nn.Conv2d(hid_channels*2, hid_channels*2, kernel_size, **cnn_kwargs)
 
         # Fully connected layers
         self.lin1 = nn.Linear(np.product(self.reshape), hidden_dim)
@@ -78,7 +78,7 @@ class EncoderBurgess(nn.Module):
         # Fully connected layers with ReLu activations
         x = x.view((batch_size, -1))
         x = torch.relu(self.lin1(x))
-        x = torch.relu(self.lin2(x))
+        # x = torch.relu(self.lin2(x))  not used in dsprites
 
         # Fully connected layer for log variance and mean
         # Log std-dev in paper (bear in mind)

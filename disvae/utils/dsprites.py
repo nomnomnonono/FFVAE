@@ -25,4 +25,6 @@ def sample_latent(size=1):
             samples[:, lat_i] = np.random.randint(lat_size, size=size)
 
     return samples
-    
+
+### train, auditの分割をどうするのか
+### 分割すると、unfairにサンプリングした時に参照できないインデックスがでてくる
