@@ -96,7 +96,8 @@ class Trainer():
                 imgs_sampled = imgs[indices_sampled]
                 samples = torch.from_numpy(imgs_sampled.astype(np.float32))
                 samples = samples.view(64, 1, 64, 64)
-                iter_loss = self._train_iteration(samples, storer)
+                sens = torch.from_numpy(binarize(latents_values[indices_sampled])[:, [1, 2]])
+                iter_loss = self._train_iteration(samples, sens, storer)
                 if (iter+1) % 1000 == 0:
                     self.logger.info('Iter: {} Average loss per image: {:.2f}'.format(iter+ 1, iter_loss))
                     self.losses_logger.log(iter, storer)
@@ -159,7 +160,7 @@ class Trainer():
         mean_epoch_loss = epoch_loss / len(data_loader)
         return mean_epoch_loss
 
-    def _train_iteration(self, data, storer):
+    def _train_iteration(self, data, sens, storer):
         """
         Trains the model for one iteration on a batch of data.
 
@@ -176,7 +177,7 @@ class Trainer():
 
         try:
             recon_batch, latent_dist, latent_sample = self.model(data)
-            loss = self.loss_f(data, recon_batch, latent_dist, self.model.training,
+            loss = self.loss_f(data, sens, recon_batch, latent_dist, self.model.training,
                                storer, latent_sample=latent_sample)
             self.optimizer.zero_grad()
             loss.backward()

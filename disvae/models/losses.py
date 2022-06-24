@@ -39,10 +39,13 @@ def get_loss_f(loss_name, **kwargs_parse):
                            optim_kwargs=dict(lr=kwargs_parse["lr_disc"], betas=(0.5, 0.9)),
                            **kwargs_all)
     elif loss_name == "btcvae":
-        return BtcvaeLoss(kwargs_parse["n_data"],
+        return BtcvaeLoss(kwargs_parse["device"],
+                          kwargs_parse["n_data"],
                           alpha=kwargs_parse["btcvae_A"],
                           beta=kwargs_parse["btcvae_B"],
                           gamma=kwargs_parse["btcvae_G"],
+                          disc_kwargs=dict(latent_dim=kwargs_parse["latent_dim"]),
+                          optim_kwargs=dict(lr=kwargs_parse["lr_disc"], betas=(0.5, 0.9)),
                           **kwargs_all)
     else:
         assert loss_name not in LOSSES
@@ -345,15 +348,25 @@ class BtcvaeLoss(BaseLoss):
        autoencoders." Advances in Neural Information Processing Systems. 2018.
     """
 
-    def __init__(self, n_data, alpha=1., beta=6., gamma=1., is_mss=True, **kwargs):
+    def __init__(self, device,
+                 n_data,
+                 alpha=1.,
+                 beta=6.,
+                 gamma=1.,
+                 is_mss=False,
+                 disc_kwargs={},
+                 optim_kwargs=dict(lr=5e-5, betas=(0.5, 0.9)), **kwargs):
         super().__init__(**kwargs)
         self.n_data = n_data
         self.beta = beta
         self.alpha = alpha
         self.gamma = gamma
         self.is_mss = is_mss  # minibatch stratified sampling
+        self.device = device
+        self.discriminator = Discriminator(**disc_kwargs).to(self.device)
+        self.optimizer_d = optim.Adam(self.discriminator.parameters(), **optim_kwargs)
 
-    def __call__(self, data, recon_batch, latent_dist, is_train, storer,
+    def __call__(self, data, sens, recon_batch, latent_dist, is_train, storer,
                  latent_sample=None):
         storer = self._pre_call(is_train, storer)
         batch_size, latent_dim = latent_sample.shape
@@ -366,9 +379,15 @@ class BtcvaeLoss(BaseLoss):
                                                                              self.n_data,
                                                                              is_mss=self.is_mss)
         # I[z;x] = KL[q(z,x)||q(x)q(z)] = E_x[KL[q(z|x)||q(z)]]
-        mi_loss = (log_q_zCx - log_qz).mean()
+        clf_loss = [
+            nn.BCEWithLogitsLoss()(_b_logit.to(self.device), _a_sens.to(self.device))
+            for _b_logit, _a_sens in zip(
+                latent_sample[:, [0, 1]].squeeze().t(), sens.type(torch.FloatTensor).t()  # not flexible
+            )
+        ]
         # TC[z] = KL[q(z)||\prod_i z_i]
-        tc_loss = (log_qz - log_prod_qzi).mean()
+        d_z = self.discriminator(latent_sample)  # fake sample
+        tc_loss = (d_z[:, 0] - d_z[:, 1]).mean()
         # dw_kl_loss is KL[q(z)||p(z)] instead of usual KL[q(z|x)||p(z))]
         dw_kl_loss = (log_prod_qzi - log_pz).mean()
 
@@ -376,17 +395,45 @@ class BtcvaeLoss(BaseLoss):
                       if is_train else 1)
 
         # total loss
-        loss = rec_loss + (self.alpha * mi_loss +
-                           self.beta * tc_loss +
-                           anneal_reg * self.gamma * dw_kl_loss)
+        loss = rec_loss + (self.alpha * clf_loss +
+                           self.gamma* tc_loss +
+                           anneal_reg * dw_kl_loss)
 
         if storer is not None:
             storer['loss'].append(loss.item())
-            storer['mi_loss'].append(mi_loss.item())
+            storer['clf_loss'].append(clf_loss.item())
             storer['tc_loss'].append(tc_loss.item())
             storer['dw_kl_loss'].append(dw_kl_loss.item())
             # computing this for storing and comparaison purposes
             _ = _kl_normal_loss(*latent_dist, storer)
+        
+        # Discriminator Loss
+        # Get second sample of latent distribution
+        # shuffle
+        z_fake = torch.zeros_like(latent_sample)
+        for i in range(2):  # not flexible
+            z_fake[:, i] = latent_sample[:, i][torch.randperm(latent_sample.shape[0])]
+        z_fake[:, 2:] = latent_sample[:, 2:][torch.randperm(latent_sample.shape[0])]
+        z_perm = _permute_dims(z_fake).detach()
+        z_fake = z_fake.to(self.device).detach()
+        d_z_perm = self.discriminator(z_perm)
+
+        # Calculate total correlation loss
+        # for cross entropy the target is the index => need to be long and says
+        # that it's first output for d_z and second for perm
+        ones = torch.ones(latent_sample.shape[0], dtype=torch.long, device=self.device)
+        zeros = torch.zeros_like(ones)
+        d_tc_loss = 0.5 * (F.cross_entropy(d_z, zeros) + F.cross_entropy(d_z_perm, ones))
+        # with sigmoid would be :
+        # d_tc_loss = 0.5 * (self.bce(d_z.flatten(), ones) + self.bce(d_z_perm.flatten(), 1 - ones))
+
+        # TO-DO: check ifshould also anneals discriminator if not becomes too good ???
+        #d_tc_loss = anneal_reg * d_tc_loss
+
+        # Compute discriminator gradients
+        self.optimizer_d.zero_grad()
+        d_tc_loss.backward()
+        self.optimizer_d.step()
 
         return loss
 

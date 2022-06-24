@@ -1,6 +1,8 @@
 """
 Module containing the main VAE class.
 """
+from tkinter import N
+from zipfile import _ZipStream
 import torch
 from torch import nn, optim
 from torch.nn import functional as F
@@ -12,7 +14,7 @@ from .decoders import get_decoder
 MODELS = ["Burgess"]
 
 
-def init_specific_model(model_type, img_size, latent_dim, dataset):
+def init_specific_model(model_type, img_size, latent_dim, dataset, n_sens):
     """Return an instance of a VAE with encoder and decoder from `model_type`."""
     model_type = model_type.lower().capitalize()
     if model_type not in MODELS:
@@ -21,13 +23,13 @@ def init_specific_model(model_type, img_size, latent_dim, dataset):
 
     encoder = get_encoder(model_type)
     decoder = get_decoder(model_type)
-    model = VAE(img_size, encoder, decoder, latent_dim, dataset)
+    model = VAE(img_size, encoder, decoder, latent_dim, dataset, n_sens)
     model.model_type = model_type  # store to help reloading
     return model
 
 
 class VAE(nn.Module):
-    def __init__(self, img_size, encoder, decoder, latent_dim, dataset):
+    def __init__(self, img_size, encoder, decoder, latent_dim, dataset, n_sens):
         """
         Class which defines model and forward pass.
 
@@ -46,10 +48,13 @@ class VAE(nn.Module):
         self.num_pixels = self.img_size[1] * self.img_size[2]
         self.encoder = encoder(img_size, self.latent_dim, dataset)
         self.decoder = decoder(img_size, self.latent_dim, dataset)
+        self.n_sens = n_sens
+        self.sens_idx = list(range(self.n_sens))
+        self.nonsens_idx = list(range(self.n_sens+1, self.latent_dim))
 
         self.reset_parameters()
 
-    def reparameterize(self, mean, logvar):
+    def reparameterize(self, _mean, _logvar):
         """
         Samples from a normal distribution using the reparameterization trick.
 
@@ -63,9 +68,16 @@ class VAE(nn.Module):
             latent_dim)
         """
         if self.training:
+            mean = _mean[:, self.nonsens_idx]
+            logvar = _logvar[:, self.nonsens_idx]
+            zb = torch.zeros_like(_mean)
             std = torch.exp(0.5 * logvar)
             eps = torch.randn_like(std)
-            return mean + std * eps
+            z = mean + std * eps
+            b = _mean[:, self.sens_idx]
+            zb[:, self.sens_idx] = b
+            zb[:, self.nonsens_idx] = z
+            return zb
         else:
             # Reconstruction mode
             return mean

@@ -26,5 +26,14 @@ def sample_latent(size=1):
 
     return samples
 
+
+def binarize(latent):
+    latent[:, 1] = [1 if s >= 2 else 0 for s in latent[:,1]]
+    latent[:, 2] = [1 if s >= 0.8 else 0 for s in latent[:,2]]
+    latent[:, 3] = [1 if s >= 3.22214631 else 0 for s in latent[:,3]]
+    latent[:, 4] = [1 if s >= 0.51612903 else 0 for s in latent[:,4]]
+    latent[:, 5] = [1 if s >= 0.51612903 else 0 for s in latent[:,5]]
+    return latent
+
 ### train, auditの分割をどうするのか
 ### 分割すると、unfairにサンプリングした時に参照できないインデックスがでてくる

@@ -53,6 +53,8 @@ def parse_arguments(args_to_parse):
                          help='Disables CUDA training, even when have one.')
     general.add_argument('-s', '--seed', type=int, default=default_config['seed'],
                          help='Random seed. Can be `None` for stochastic behavior.')
+    general.add_argument('-n_sens', type=int,
+                         help="Number of sensitive attribute.")
 
     # Learning options
     training = parser.add_argument_group('Training specific options')
@@ -201,7 +203,7 @@ def main(args):
 
         # PREPARES MODEL
         args.img_size = get_img_size(args.dataset)  # stores for metadata
-        model = init_specific_model(args.model_type, args.img_size, args.latent_dim, args.dataset)
+        model = init_specific_model(args.model_type, args.img_size, args.latent_dim, args.dataset, args.n_sens)
         logger.info('Num parameters in model: {}'.format(get_n_param(model)))
 
         # TRAINS
