@@ -177,7 +177,7 @@ class Trainer():
 
         try:
             recon_batch, latent_dist, latent_sample = self.model(data)
-            loss = self.loss_f(data, sens, recon_batch, latent_dist, self.model.training,
+            loss = self.loss_f(data, sens, self.optimizer, recon_batch, latent_dist, self.model.training,
                                storer, latent_sample=latent_sample)
             self.optimizer.zero_grad()
             loss.backward()

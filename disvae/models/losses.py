@@ -366,7 +366,7 @@ class BtcvaeLoss(BaseLoss):
         self.discriminator = Discriminator(**disc_kwargs).to(self.device)
         self.optimizer_d = optim.Adam(self.discriminator.parameters(), **optim_kwargs)
 
-    def __call__(self, data, sens, recon_batch, latent_dist, is_train, storer,
+    def __call__(self, data, sens, optimizer, recon_batch, latent_dist, is_train, storer,
                  latent_sample=None):
         storer = self._pre_call(is_train, storer)
         batch_size, latent_dim = latent_sample.shape
@@ -398,6 +398,9 @@ class BtcvaeLoss(BaseLoss):
         loss = rec_loss + (self.alpha * clf_loss_mean +
                            self.gamma* tc_loss +
                            anneal_reg * dw_kl_loss)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
         if storer is not None:
             storer['loss'].append(loss.item())
