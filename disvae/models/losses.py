@@ -399,8 +399,7 @@ class BtcvaeLoss(BaseLoss):
                            self.gamma* tc_loss +
                            anneal_reg * dw_kl_loss)
         optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        loss.backward(retain_graph=True)
 
         if storer is not None:
             storer['loss'].append(loss.item())
@@ -436,6 +435,7 @@ class BtcvaeLoss(BaseLoss):
         # Compute discriminator gradients
         self.optimizer_d.zero_grad()
         d_tc_loss.backward()
+        optimizer.step()
         self.optimizer_d.step()
 
         return loss
