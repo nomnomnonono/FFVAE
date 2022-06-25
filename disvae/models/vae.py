@@ -79,7 +79,7 @@ class VAE(nn.Module):
             return zb
         else:
             # Reconstruction mode
-            return mean
+            return _mean
 
     def forward(self, x):
         """
