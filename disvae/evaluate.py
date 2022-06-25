@@ -14,6 +14,8 @@ from disvae.models.losses import get_loss_f
 from disvae.utils.math import log_density_gaussian
 from disvae.utils.modelIO import save_metadata
 
+from disvae.utils.dsprites import *
+
 TEST_LOSSES_FILE = "test_losses.log"
 METRICS_FILENAME = "metrics.log"
 METRIC_HELPERS_FILE = "metric_helpers.pth"
@@ -102,12 +104,13 @@ class Evaluator:
         data_loader: torch.utils.data.DataLoader
         """
         storer = defaultdict(list)
-        for data, _ in tqdm(dataloader, leave=False, disable=not self.is_progress_bar):
+        for data, sens in tqdm(dataloader, leave=False, disable=not self.is_progress_bar):
+            sens = binarize(sens[:, [1, 2]]).to(self.device)
             data = data.to(self.device)
 
             try:
                 recon_batch, latent_dist, latent_sample = self.model(data)
-                _ = self.loss_f(data, recon_batch, latent_dist, self.model.training,
+                _ = self.loss_f(data, sens, recon_batch, latent_dist, self.model.training,
                                 storer, latent_sample=latent_sample)
             except ValueError:
                 # for losses that use multiple optimizers (e.g. Factor)
