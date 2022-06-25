@@ -98,8 +98,7 @@ class Trainer():
                 samples = samples.view(64, 1, 64, 64)
                 sens = torch.from_numpy(binarize(latents_values[indices_sampled])[:, [1, 2]])
                 iter_loss = self._train_iteration(samples, sens, storer)
-                print(iter_loss)
-                if (iter+1) % 1000 == 0:
+                if (iter+1) % 10000 == 0:
                     self.logger.info('Iter: {} Average loss per image: {:.2f}'.format(iter+ 1, iter_loss))
                     self.losses_logger.log(iter, storer)
 
