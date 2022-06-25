@@ -391,7 +391,7 @@ class BtcvaeLoss(BaseLoss):
         # dw_kl_loss is KL[q(z)||p(z)] instead of usual KL[q(z|x)||p(z))]
         #dw_kl_loss = (log_prod_qzi - log_pz).mean()
         _mu, _logvar = latent_dist
-        n_sens = n_sens.shape[1]
+        n_sens = sens.shape[1]
         sens_idx = list(range(n_sens))
         nonsens_idx = list(range(n_sens+1, 10))
         mu = _mu[:, nonsens_idx]
@@ -399,7 +399,7 @@ class BtcvaeLoss(BaseLoss):
         std = (logvar / 2).exp()
         q_zIx = torch.distributions.Normal(mu, std)
         p_z = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
-        dw_kl_loss = torch.distributions.kl_divergence(q_zIx, p_z).sum(1)
+        dw_kl_loss = torch.distributions.kl_divergence(q_zIx, p_z).sum(1).mean()
 
         anneal_reg = (linear_annealing(0, 1, self.n_train_steps, self.steps_anneal)
                       if is_train else 1)
@@ -448,7 +448,7 @@ class BtcvaeLoss(BaseLoss):
         optimizer.step()
         self.optimizer_d.step()
 
-        return rec_loss, clf_loss_mean, tc_loss, dw_kl_loss
+        return loss
 
 
 def _reconstruction_loss(data, recon_data, distribution="bernoulli", storer=None):

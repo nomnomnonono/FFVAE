@@ -97,10 +97,8 @@ class Trainer():
                 samples = torch.from_numpy(imgs_sampled.astype(np.float32))
                 samples = samples.view(64, 1, 64, 64)
                 sens = torch.from_numpy(binarize(latents_values[indices_sampled])[:, [1, 2]])
-                #iter_loss = self._train_iteration(samples, sens, storer)
-                rec, clf, tc, dw = self._train_iteration(samples, sens, storer)
-                if (iter+1) % 1000 == 0:
-                    print(rec, clf, tc, dw)
+                iter_loss = self._train_iteration(samples, sens, storer)
+                if (iter+1) % 10000 == 0:
                     self.logger.info('Iter: {} Average loss per image: {:.2f}'.format(iter+ 1, iter_loss))
                     self.losses_logger.log(iter, storer)
 
@@ -179,15 +177,14 @@ class Trainer():
 
         try:
             recon_batch, latent_dist, latent_sample = self.model(data)
-            rec, clf, tc, dw  = self.loss_f(data, sens, self.optimizer, recon_batch, latent_dist, self.model.training,
+            loss  = self.loss_f(data, sens, self.optimizer, recon_batch, latent_dist, self.model.training,
                                storer, latent_sample=latent_sample)
 
         except ValueError:
             # for losses that use multiple optimizers (e.g. Factor)
             loss = self.loss_f.call_optimize(data, self.model, self.optimizer, storer)
 
-        #return loss.item()
-        return rec.item(), clf.item(), tc.item(), dw.item()
+        return loss.item()
 
 
 class LossesLogger(object):
