@@ -181,9 +181,6 @@ class Trainer():
             recon_batch, latent_dist, latent_sample = self.model(data)
             rec, clf, tc, dw  = self.loss_f(data, sens, self.optimizer, recon_batch, latent_dist, self.model.training,
                                storer, latent_sample=latent_sample)
-            #self.optimizer.zero_grad()
-            #loss.backward()
-            #self.optimizer.step()
 
         except ValueError:
             # for losses that use multiple optimizers (e.g. Factor)
