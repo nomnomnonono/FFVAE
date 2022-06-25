@@ -89,8 +89,8 @@ class Trainer():
             imgs = dataset_zip["imgs"]
             latents_values = dataset_zip["latents_values"]
             # transforms = transforms.Compose([transforms.ToTensor()])
+            storer = defaultdict(list)
             for iter in range(3*10**5):
-                storer = defaultdict(list)
                 latents_sampled = sample_latent(size=64)
                 indices_sampled = latent_to_index(latents_sampled)
                 imgs_sampled = imgs[indices_sampled]
@@ -100,11 +100,11 @@ class Trainer():
                 iter_loss = self._train_iteration(samples, sens, storer)
                 if (iter+1) % 10000 == 0:
                     self.logger.info('Iter: {} Average loss per image: {:.2f}'.format(iter+ 1, iter_loss))
-                    self.losses_logger.log(iter, storer)
+                    self.losses_logger.log(iter+1, storer)
 
                     if self.gif_visualizer is not None:
                         self.gif_visualizer()
-                    
+                    storer = defaultdict(list)
                     save_model(self.model, self.save_dir, filename="model-{}.pt".format(iter+1))
         else:
             for epoch in range(epochs):
