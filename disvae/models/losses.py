@@ -438,7 +438,7 @@ class BtcvaeLoss(BaseLoss):
         optimizer.step()
         self.optimizer_d.step()
 
-        return loss
+        return rec_loss, clf_loss_mean, tc_loss, dw_kl_loss
 
 
 def _reconstruction_loss(data, recon_data, distribution="bernoulli", storer=None):
