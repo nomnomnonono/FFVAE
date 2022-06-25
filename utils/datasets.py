@@ -15,6 +15,8 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, datasets
 
+from disvae.utils.dsprites import *
+
 DIR = os.path.abspath(os.path.dirname(__file__))
 COLOUR_BLACK = 0
 COLOUR_WHITE = 1
@@ -183,7 +185,7 @@ class DSprites(DisentangledDataset):
 
         dataset_zip = np.load(self.train_data)
         self.imgs = dataset_zip['imgs']
-        self.lat_values = dataset_zip['latents_values']
+        self.lat_values = binarize(dataset_zip['latents_values'])
 
     def download(self):
         """Download the dataset."""

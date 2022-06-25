@@ -14,7 +14,6 @@ from disvae.models.losses import get_loss_f
 from disvae.utils.math import log_density_gaussian
 from disvae.utils.modelIO import save_metadata
 
-from disvae.utils.dsprites import *
 
 TEST_LOSSES_FILE = "test_losses.log"
 METRICS_FILENAME = "metrics.log"
@@ -105,7 +104,7 @@ class Evaluator:
         """
         storer = defaultdict(list)
         for data, sens in tqdm(dataloader, leave=False, disable=not self.is_progress_bar):
-            sens = binarize(sens[:, [1, 2]]).to(self.device)
+            sens = sens[:, [1, 2]].to(self.device)
             data = data.to(self.device)
 
             try:
