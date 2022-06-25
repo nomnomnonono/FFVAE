@@ -78,7 +78,7 @@ def save_metadata(metadata, directory, filename=META_FILENAME, **kwargs):
         json.dump(metadata, f, indent=4, sort_keys=True, **kwargs)
 
 
-def load_model(directory, is_gpu=True, filename=MODEL_FILENAME):
+def load_model(directory, dataset, n_sens, is_gpu=True, filename=MODEL_FILENAME):
     """Load a trained model.
 
     Parameters
@@ -100,7 +100,7 @@ def load_model(directory, is_gpu=True, filename=MODEL_FILENAME):
     model_type = metadata["model_type"]
 
     path_to_model = os.path.join(directory, filename)
-    model = _get_model(model_type, img_size, latent_dim, device, path_to_model)
+    model = _get_model(model_type, img_size, latent_dim, dataset, n_sens, device, path_to_model)
     return model
 
 
@@ -127,7 +127,7 @@ def load_checkpoints(directory, is_gpu=True):
     return checkpoints
 
 
-def _get_model(model_type, img_size, latent_dim, device, path_to_model):
+def _get_model(model_type, img_size, latent_dim, dataset, n_sens, device, path_to_model):
     """ Load a single model.
 
     Parameters
@@ -145,7 +145,7 @@ def _get_model(model_type, img_size, latent_dim, device, path_to_model):
     path_to_device : str
         Full path to the saved model on the device.
     """
-    model = init_specific_model(model_type, img_size, latent_dim).to(device)
+    model = init_specific_model(model_type, img_size, latent_dim, dataset, n_sens).to(device)
     # works with state_dict to make it independent of the file structure
     model.load_state_dict(torch.load(path_to_model), strict=False)
     model.eval()

@@ -229,7 +229,7 @@ def main(args):
         save_model(trainer.model, exp_dir, metadata=vars(args))
 
     if args.is_metrics or not args.no_test:
-        model = load_model(exp_dir, is_gpu=not args.no_cuda)
+        model = load_model(exp_dir, args.dataset, args.n_sens, is_gpu=not args.no_cuda)
         metadata = load_metadata(exp_dir)
         # TO-DO: currently uses train datatset
         test_loader = get_dataloaders(metadata["dataset"],
