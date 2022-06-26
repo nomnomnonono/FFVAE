@@ -248,38 +248,24 @@ class CelebA(DisentangledDataset):
     img_size = (3, 64, 64)
     background_color = COLOUR_WHITE
 
-    def __init__(self, which_set, root=os.path.join(DIR, '../data/celeba'), **kwargs):
+    def __init__(self, which_set, root=os.path.join("data", "CelebA", "img_align_celeba"), **kwargs):
+        print(root)
         super().__init__(root, [transforms.ToTensor()], **kwargs)
         if which_set == 'train':
-            self.imgs = glob.glob(os.path.join(self.train_data, 'train') + '/*')
+            self.imgs = glob.glob(os.path.join(root, 'train') + '/*')
+            print(len(self.imgs))
         elif which_set == 'val':
-            self.imgs = glob.glob(os.path.join(self.train_data, 'val') + '/*')
+            self.imgs = glob.glob(os.path.join(root, 'val') + '/*')
         elif which_set == 'test':
-            self.imgs = glob.glob(os.path.join(self.train_data, 'test') + '/*')
+            self.imgs = glob.glob(os.path.join(root, 'test') + '/*')
         else:
             pass
-        self.labels = os.path.join(os.path.join(DIR, '../data/celeba/list_attr_celeba.txt'))
+        self.labels = os.path.join(os.path.join(root, 'label.txt'))
         self.labels = pd.read_csv(self.labels, sep=" ").replace(-1, 0)
 
     def download(self):
-        """Download the dataset."""
-        save_path = os.path.join(self.root, 'celeba.zip')
-        os.makedirs(self.root)
-        subprocess.check_call(["curl", "-L", type(self).urls["train"],
-                               "--output", save_path])
+        pass
 
-        hash_code = '00d2c5bc6d35e252742224ab0c1e8fcb'
-        assert hashlib.md5(open(save_path, 'rb').read()).hexdigest() == hash_code, \
-            '{} file is corrupted.  Remove the file and try again.'.format(save_path)
-
-        with zipfile.ZipFile(save_path) as zf:
-            self.logger.info("Extracting CelebA ...")
-            zf.extractall(self.root)
-
-        os.remove(save_path)
-
-        self.logger.info("Resizing CelebA ...")
-        preprocess(self.train_data, size=type(self).img_size[1:])
 
     def __getitem__(self, idx):
         """Get the image of `idx`
@@ -302,8 +288,8 @@ class CelebA(DisentangledDataset):
         # no label so return 0 (note that can't return None because)
         # dataloaders requires so
         # return input, sens, label
-        sens = np.array(self.iloc[idx][["Chubby", "Eyeglasses", "Male"]], dtype="float")
-        label = np.array(self.iloc[idx]["Heavy_Makeup"], dtype="float")
+        sens = np.array(self.labels.iloc[idx][["Chubby", "Eyeglasses", "Male"]], dtype="float")
+        label = np.array(self.labels.iloc[idx]["Heavy_Makeup"], dtype="float")
         return img, sens, label
 
 
