@@ -10,6 +10,7 @@ from skimage.io import imread
 from PIL import Image
 from tqdm import tqdm
 import numpy as np
+import pandas as pd
 
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -48,7 +49,7 @@ def get_background(dataset):
     return get_dataset(dataset).background_color
 
 
-def get_dataloaders(dataset, root=None, shuffle=True, pin_memory=True,
+def get_dataloaders(dataset, which_set, root=None, shuffle=True, pin_memory=True,
                     batch_size=128, logger=logging.getLogger(__name__), **kwargs):
     """A generic data loader
 
@@ -65,7 +66,7 @@ def get_dataloaders(dataset, root=None, shuffle=True, pin_memory=True,
     """
     pin_memory = pin_memory and torch.cuda.is_available  # only pin if GPU available
     Dataset = get_dataset(dataset)
-    dataset = Dataset(logger=logger) if root is None else Dataset(root=root, logger=logger)
+    dataset = Dataset(which_set, logger=logger) if root is None else Dataset(which_set, root=root, logger=logger)
     return DataLoader(dataset,
                       batch_size=batch_size,
                       shuffle=shuffle,
@@ -180,7 +181,7 @@ class DSprites(DisentangledDataset):
                   'shape': np.array([1., 2., 3.]),
                   'color': np.array([1.])}
 
-    def __init__(self, root=os.path.join(DIR, '../data/dsprites/'), **kwargs):
+    def __init__(self, which_set, root=os.path.join(DIR, '../data/dsprites/'), **kwargs):
         super().__init__(root, [transforms.ToTensor()], **kwargs)
 
         dataset_zip = np.load(self.train_data)
@@ -212,7 +213,8 @@ class DSprites(DisentangledDataset):
         sample = self.transforms(sample)
 
         lat_value = self.lat_values[idx]
-        return sample, lat_value
+        # return input, sens, label
+        return sample, lat_value[:, [1, 2]], lat_value[:, 4]
 
 
 class CelebA(DisentangledDataset):
@@ -245,10 +247,18 @@ class CelebA(DisentangledDataset):
     img_size = (3, 64, 64)
     background_color = COLOUR_WHITE
 
-    def __init__(self, root=os.path.join(DIR, '../data/celeba'), **kwargs):
+    def __init__(self, which_set, root=os.path.join(DIR, '../data/celeba'), **kwargs):
         super().__init__(root, [transforms.ToTensor()], **kwargs)
-
-        self.imgs = glob.glob(self.train_data + '/*')
+        if which_set == 'train':
+            self.imgs = glob.glob(os.path.join(self.train_data, 'train') + '/*')
+        elif which_set == 'val':
+            self.imgs = glob.glob(os.path.join(self.train_data, 'val') + '/*')
+        elif which_set == 'test':
+            self.imgs = glob.glob(os.path.join(self.train_data, 'test') + '/*')
+        else:
+            pass
+        self.labels = os.path.join(os.path.join(DIR, '../data/celeba/list_attr_celeba.txt'))
+        self.labels = pd.read_csv(self.labels, sep=" ").replace(-1, 0)
 
     def download(self):
         """Download the dataset."""
@@ -290,7 +300,10 @@ class CelebA(DisentangledDataset):
 
         # no label so return 0 (note that can't return None because)
         # dataloaders requires so
-        return img, 0
+        # return input, sens, label
+        sens = np.array(self.iloc[idx][["Chubby", "Eyeglasses", "Male"]], dtype="float")
+        label = np.array(self.iloc[idx]["Heavy_Makeup"], dtype="float")
+        return img, sens, label
 
 
 class Chairs(datasets.ImageFolder):

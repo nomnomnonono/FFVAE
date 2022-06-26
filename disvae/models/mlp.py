@@ -6,7 +6,7 @@ from torch import nn
 from disvae.utils.initialization import weights_init
 
 
-class Discriminator(nn.Module):
+class MLP(nn.Module):
     def __init__(self,
                  neg_slope=0.2,
                  latent_dim=10,
@@ -35,7 +35,7 @@ class Discriminator(nn.Module):
             arXiv preprint arXiv:1802.05983 (2018).
 
         """
-        super(Discriminator, self).__init__()
+        super(MLP, self).__init__()
 
         # Activation parameters
         self.neg_slope = neg_slope
@@ -45,7 +45,7 @@ class Discriminator(nn.Module):
         self.z_dim = latent_dim
         self.hidden_units = hidden_units
         # theoretically 1 with sigmoid but gives bad results => use 2 and softmax
-        out_units = 2
+        out_units = 1
 
         # Fully connected layers
         self.lin1 = nn.Linear(self.z_dim, hidden_units)
@@ -54,15 +54,18 @@ class Discriminator(nn.Module):
 
         self.reset_parameters()
 
-    def forward(self, z):
+    def forward(self, z, mode):
 
         # Fully connected layers with leaky ReLu activations
         z = self.leaky_relu(self.lin1(z))
         z = self.leaky_relu(self.lin2(z))
         z = self.lin3(z)
-        z = nn.softmax(z, dim=1)
-
-        return z
+        if mode == "test":
+            z = nn.softmax(z, dim=1)
+            return z
+        elif mode == "train":
+            prob, logit = nn.sigmoid(z), z
+            return logit, prob
 
     def reset_parameters(self):
         self.apply(weights_init)

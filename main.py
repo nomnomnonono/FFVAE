@@ -5,11 +5,13 @@ import os
 from configparser import ConfigParser
 
 from torch import optim
+import torch
 
-from disvae import init_specific_model, Trainer, Evaluator
+from disvae import init_specific_model, Trainer, Evaluator, MLPTrainer
 from disvae.utils.modelIO import save_model, load_model, load_metadata
 from disvae.models.losses import LOSSES, RECON_DIST, get_loss_f
 from disvae.models.vae import MODELS
+from disvae.models.mlp import MLP
 from utils.datasets import get_dataloaders, get_img_size, DATASETS
 from utils.helpers import (create_safe_directory, get_device, set_seed, get_n_param,
                            get_config_section, update_namespace_, FormatterNoDuplicate)
@@ -69,11 +71,14 @@ def parse_arguments(args_to_parse):
     training.add_argument('-e', '--epochs', type=int,
                           default=default_config['epochs'],
                           help='Maximum number of epochs to run for.')
+    training.add_argument('--mlp_epochs', type=int,
+                          default=100)
     training.add_argument('-b', '--batch-size', type=int,
                           default=default_config['batch_size'],
                           help='Batch size for training.')
     training.add_argument('--lr', type=float, default=default_config['lr'],
                           help='Learning rate.')
+    training.add_argument('--iter', type=int, default=3*10**5)
 
     # Model Options
     model = parser.add_argument_group('Model specfic options')
@@ -143,6 +148,10 @@ def parse_arguments(args_to_parse):
     evaluation.add_argument('--eval-batchsize', type=int,
                             default=default_config['eval_batchsize'],
                             help='Batch size for evaluation.')
+    evaluation.add_argument('--train_mlp', type=bool, action='store_true',
+                            default=True)
+    evaluation.add_argument('--target-sens', type=int, action='store_true',
+                            default=0)
 
     args = parser.parse_args(args_to_parse)
     if args.experiment != 'custom':
@@ -196,7 +205,7 @@ def main(args):
             args.epochs *= 2
 
         # PREPARES DATA
-        train_loader = get_dataloaders(args.dataset,
+        train_loader = get_dataloaders(args.dataset, 'train',
                                        batch_size=args.batch_size,
                                        logger=logger)
         logger.info("Train {} with {} samples".format(args.dataset, len(train_loader.dataset)))
@@ -223,6 +232,7 @@ def main(args):
                           gif_visualizer=gif_visualizer)
         trainer(train_loader,
                 epochs=args.epochs,
+                iter=args.iter,
                 checkpoint_every=args.checkpoint_every,)
 
         # SAVE MODEL AND EXPERIMENT INFORMATION
@@ -232,7 +242,7 @@ def main(args):
         model = load_model(exp_dir, args.dataset, args.n_sens, is_gpu=not args.no_cuda)
         metadata = load_metadata(exp_dir)
         # TO-DO: currently uses train datatset
-        test_loader = get_dataloaders(metadata["dataset"],
+        test_loader = get_dataloaders(metadata["dataset"], 'val',
                                       batch_size=args.eval_batchsize,
                                       shuffle=False,
                                       logger=logger)
@@ -247,6 +257,36 @@ def main(args):
                               is_progress_bar=not args.no_progress_bar)
 
         evaluator(test_loader, is_metrics=args.is_metrics, is_losses=not args.no_test)
+    
+    if args.train_mlp:
+        train_loader = get_dataloaders(args.dataset, 'val',
+                                       batch_size=args.batch_size,
+                                       logger=logger)
+        logger.info("MLP Train {} with {} samples".format(args.dataset, len(train_loader.dataset)))
+
+        # PREPARES MODEL
+        args.img_size = get_img_size(args.dataset)  # stores for metadata
+        model = MLP(latent_dim=args.latent_dim)
+        logger.info('Num parameters in model: {}'.format(get_n_param(model)))
+
+        # TRAINS
+        optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+        model = model.to(device)  # make sure trainer and viz on same device
+        vae = init_specific_model(args.model_type, args.img_size, args.latent_dim, args.dataset, args.n_sens)
+        vae.load_state_dict(torch.load(os.path.join("result", args.name, "model.pt")), strict=False)
+
+        trainer = MLPTrainer(model, vae, optimizer,
+                          device=device,
+                          logger=logger,
+                          save_dir=exp_dir,
+                          is_progress_bar=not args.no_progress_bar)
+        
+        trainer(train_loader,
+                epochs=args.mlp_epochs,
+                checkpoint_every=args.checkpoint_every,)
+        
+        save_model(trainer.model, exp_dir, metadata=vars(args), filename="mlp.pt")
 
 
 if __name__ == '__main__':
