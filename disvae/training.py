@@ -291,8 +291,9 @@ class MLPTrainer():
 
         for epoch in range(epochs):
             storer = defaultdict(list)
-            mean_epoch_loss = self._mlp_train_epoch(data_loader, storer, epoch)
-            self.logger.info('Epoch: {} Average loss per image: {:.2f}'.format(epoch + 1, mean_epoch_loss))
+            mean_epoch_loss, mean_epoch_acc, mean_epoch_dp = self._mlp_train_epoch(data_loader, storer, epoch)
+            self.logger.info('Epoch: {} Average loss per image: {:.4f}. acc: {:.4f}. dp: {:.4f}'.format(
+                epoch + 1, mean_epoch_loss, mean_epoch_acc, mean_epoch_dp))
             self.losses_logger.log(epoch, storer)
 
             if (epoch + 1) % checkpoint_every == 0:
@@ -323,6 +324,8 @@ class MLPTrainer():
             Mean loss per image
         """
         epoch_loss = 0.
+        epoch_acc = 0.
+        epoch_dp = 0.
         kwargs = dict(desc="Epoch {}".format(epoch + 1), leave=False,
                       disable=not self.is_progress_bar)
         with trange(len(data_loader), **kwargs) as t:
@@ -350,9 +353,13 @@ class MLPTrainer():
                 self.optimizer.step()
 
                 epoch_loss += loss.item()
+                epoch_acc += acc
+                epoch_dp += dp.item()
 
                 t.set_postfix(loss=loss.item())
                 t.update()
 
         mean_epoch_loss = epoch_loss / len(data_loader)
-        return mean_epoch_loss
+        mean_epoch_acc = epoch_acc / len(data_loader)
+        mean_epoch_dp = epoch_dp / len(data_loader)
+        return mean_epoch_loss, mean_epoch_acc, mean_epoch_dp
