@@ -2,7 +2,7 @@
 Module containing discriminator for FactorVAE.
 """
 from torch import nn
-
+import torch
 from disvae.utils.initialization import weights_init
 
 
@@ -64,7 +64,7 @@ class MLP(nn.Module):
             z = nn.softmax(z, dim=1)
             return z
         elif mode == "train":
-            prob, logit = nn.sigmoid(z), z
+            prob, logit = torch.sigmoid(z), z
             return logit, prob
 
     def reset_parameters(self):

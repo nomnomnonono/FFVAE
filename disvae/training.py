@@ -267,7 +267,7 @@ class MLPTrainer():
         self.losses_logger = LossesLogger(os.path.join(self.save_dir, "mlp_train_losses.log"))
         self.logger.info("Training Device: {}".format(self.device))
         self.dp = DemographicParityLoss()
-        self.loss = nn.BCEWithLogitLoss()
+        self.loss = nn.BCEWithLogitsLoss()
 
     def __call__(self, data_loader,
                  epochs=10,
@@ -287,7 +287,7 @@ class MLPTrainer():
         """
         start = default_timer()
         self.model.train()
-        self.encoder.eval()
+        self.vae.eval()
 
         for epoch in range(epochs):
             storer = defaultdict(list)
@@ -328,21 +328,21 @@ class MLPTrainer():
         with trange(len(data_loader), **kwargs) as t:
             for _, (data, sens, label) in enumerate(data_loader):
                 data, sens, label = (
-                    torch.from_numpy(data).to(self.device),
-                    torch.from_numpy(sens).to(self.device),
-                    torch.from_numpy(label).to(self.device)
+                    data.to(self.device),
+                    sens.to(self.device),
+                    label.to(self.device)
                 )
-                latent = self.encoder.sample_latent(data).detach()
+                latent = self.vae.sample_latent(data).detach()
                 latent[:, 1] = torch.randn_like(latent[:, 1])
                 logit, prob = self.model(latent, mode="train")
                 loss = self.loss(logit.view(-1), label)
                 acc = sum((prob.view(-1) > 0.5) == label).float().item() / len(label)
-                dp = self.dp(data, logit, sens)
+                dp = self.dp(data, logit, sens[:, 1])
 
                 if storer is not None:
                     storer['clf'].append(loss.item())
                     # Acc, DP
-                    storer['acc'].append(acc.item())
+                    storer['acc'].append(acc)
                     storer['dp'].append(dp.item())
 
                 self.optimizer.zero_grad()

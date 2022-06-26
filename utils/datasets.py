@@ -214,7 +214,8 @@ class DSprites(DisentangledDataset):
 
         lat_value = self.lat_values[idx]
         # return input, sens, label
-        return sample, lat_value[:, [1, 2]], lat_value[:, 4]
+        #return sample, lat_value[:, [1, 2]], lat_value[:, 4]
+        return sample, lat_value[[1, 2]], lat_value[4]
 
 
 class CelebA(DisentangledDataset):

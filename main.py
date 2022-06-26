@@ -7,7 +7,8 @@ from configparser import ConfigParser
 from torch import optim
 import torch
 
-from disvae import init_specific_model, Trainer, Evaluator, MLPTrainer
+from disvae import init_specific_model, Trainer, Evaluator
+from disvae.training import MLPTrainer
 from disvae.utils.modelIO import save_model, load_model, load_metadata
 from disvae.models.losses import LOSSES, RECON_DIST, get_loss_f
 from disvae.models.vae import MODELS
@@ -148,9 +149,9 @@ def parse_arguments(args_to_parse):
     evaluation.add_argument('--eval-batchsize', type=int,
                             default=default_config['eval_batchsize'],
                             help='Batch size for evaluation.')
-    evaluation.add_argument('--train_mlp', type=bool, action='store_true',
+    evaluation.add_argument('--train_mlp', type=bool,
                             default=True)
-    evaluation.add_argument('--target-sens', type=int, action='store_true',
+    evaluation.add_argument('--target-sens', type=int,
                             default=0)
 
     args = parser.parse_args(args_to_parse)
@@ -232,7 +233,7 @@ def main(args):
                           gif_visualizer=gif_visualizer)
         trainer(train_loader,
                 epochs=args.epochs,
-                iter=args.iter,
+                iters=args.iter,
                 checkpoint_every=args.checkpoint_every,)
 
         # SAVE MODEL AND EXPERIMENT INFORMATION
@@ -274,7 +275,7 @@ def main(args):
 
         model = model.to(device)  # make sure trainer and viz on same device
         vae = init_specific_model(args.model_type, args.img_size, args.latent_dim, args.dataset, args.n_sens)
-        vae.load_state_dict(torch.load(os.path.join("result", args.name, "model.pt")), strict=False)
+        vae.load_state_dict(torch.load(os.path.join("results", args.name, "model.pt")), strict=False)
 
         trainer = MLPTrainer(model, vae, optimizer,
                           device=device,
@@ -286,7 +287,6 @@ def main(args):
                 epochs=args.mlp_epochs,
                 checkpoint_every=args.checkpoint_every,)
         
-        save_model(trainer.model, exp_dir, metadata=vars(args), filename="mlp.pt")
 
 
 if __name__ == '__main__':
