@@ -296,8 +296,7 @@ class MLPTrainer():
                 epoch + 1, mean_epoch_loss, mean_epoch_acc, mean_epoch_dp))
             self.losses_logger.log(epoch, storer)
 
-            if (epoch + 1) % checkpoint_every == 0:
-                save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
+            save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
 
         self.model.eval()
 
