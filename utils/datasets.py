@@ -71,6 +71,7 @@ def get_dataloaders(dataset, which_set, root=None, shuffle=True, pin_memory=True
                       batch_size=batch_size,
                       shuffle=shuffle,
                       pin_memory=pin_memory,
+                      num_workers=os.cpu_count()//2,
                       **kwargs)
 
 

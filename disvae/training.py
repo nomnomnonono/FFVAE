@@ -153,7 +153,8 @@ class Trainer():
         kwargs = dict(desc="Epoch {}".format(epoch + 1), leave=False,
                       disable=not self.is_progress_bar)
         with trange(len(data_loader), **kwargs) as t:
-            for _, (data, sens, _) in enumerate(data_loader):
+            for i, (data, sens, _) in enumerate(data_loader):
+                data = data.float()
                 iter_loss = self._train_iteration(data, sens, storer)
                 epoch_loss += iter_loss
 
@@ -334,6 +335,7 @@ class MLPTrainer():
                     sens.to(self.device),
                     label.to(self.device)
                 )
+                data = data.float()
                 latent = self.vae.sample_latent(data).detach()
                 latent[:, 1] = torch.randn_like(latent[:, 1])
                 logit, prob = self.model(latent, mode="train")
