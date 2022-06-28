@@ -264,7 +264,7 @@ def main(args):
                                        batch_size=args.batch_size,
                                        logger=logger)
         test_loader = get_dataloaders(args.dataset, 'test',
-                                       batch_size=args.eval_batch_size,
+                                       batch_size=args.eval_batchsize,
                                        logger=logger)
         logger.info("MLP Train {} with {} samples".format(args.dataset, len(train_loader.dataset)))
 

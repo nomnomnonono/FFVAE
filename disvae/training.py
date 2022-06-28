@@ -276,7 +276,7 @@ class MLPTrainer():
         self.count = 0
         self.flag = False
 
-    def __call__(self, data_loader,
+    def __call__(self, data_loader, test_loader,
                  epochs=10):
         """
         Trains the model.
@@ -298,14 +298,17 @@ class MLPTrainer():
         for epoch in range(epochs):
             train_storer = defaultdict(list)
             test_storer = defaultdict(list)
-            mean_epoch_loss, mean_epoch_acc, mean_epoch_dp = self._mlp_train_epoch(data_loader, train_storer, test_storer, epoch)
+            mean_epoch_loss, mean_epoch_acc, mean_epoch_dp = self._mlp_train_epoch(data_loader, test_loader, train_storer, test_storer, epoch)
             self.logger.info('Epoch: {} Average loss per image: {:.4f}. acc: {:.4f}. dp: {:.4f}'.format(
                 epoch + 1, mean_epoch_loss, mean_epoch_acc, mean_epoch_dp))
             self.losses_logger.log(epoch, train_storer)
             self.test_logger.log(epoch, test_storer)
+            self.model.cpu()
+            torch.save(self.model.state_dict(), os.path.join(self.save_dir, "mlp-{}.pt".format(epoch)))
+            self.model.to(self.device)
             if self.flag:
                 self.model.cpu()
-                torch.save(self.model.state_dict(), os.path.join(self.save_dir, "mlp.pt"))
+                os.rename(os.path.join(self.save_dir, "mlp-{}.pt".format(epoch-5)), os.path.join(self.save_dir, "model.pt"))
                 break
 
             #save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
