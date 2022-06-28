@@ -376,7 +376,6 @@ class MLPTrainer():
         test_loss = 0.
         test_acc = 0.
         test_dp = 0.
-        test_d = 0.
         with trange(len(test_loader), **kwargs) as t:
             for _, (data, sens, label) in enumerate(test_loader):
                 data, sens, label = (
@@ -391,10 +390,6 @@ class MLPTrainer():
                 logit, prob = self.model(latent, mode="train")
                 loss = self.loss(logit.view(-1), label)
                 acc = sum((prob.view(-1) > 0.5) == label).float().item() / len(label)
-                dp = self.dp(data, logit, sens[:, self.target_sens])
-                """
-                    dp raw
-                """
                 pred = prob.view(-1) > 0.5
                 a1 = 0.
                 a0 = 0.
@@ -406,24 +401,22 @@ class MLPTrainer():
                             a0 += 1
                 a1 /= len(pred)
                 a0 /= len(pred)
-                d = abs(a1 - a0)
+                dp = abs(a1 - a0)
                 if test_storer is not None:
                     test_storer['clf'].append(loss.item())
                     # Acc, DP
                     test_storer['acc'].append(acc)
-                    test_storer['dp'].append(dp.item())
-                    test_storer['d'].append(d)
+                    test_storer['dp'].append(dp)
                 test_loss += loss.item()
                 test_acc += acc
-                test_dp += dp.item()
-                test_d += d
+                test_dp += dp
 
                 t.set_postfix(loss=loss.item())
                 t.update()
             test_loss = test_loss / len(test_loader)
             test_acc = test_acc / len(test_loader)
             test_dp = test_dp / len(test_loader)
-
+            
             if self.min_val is None:
                 self.min_val = test_loss
                 self.count += 1
