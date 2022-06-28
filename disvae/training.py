@@ -391,16 +391,25 @@ class MLPTrainer():
                 loss = self.loss(logit.view(-1), label)
                 acc = sum((prob.view(-1) > 0.5) == label).float().item() / len(label)
                 pred = prob.view(-1) > 0.5
+                y1a1 = 0.
+                y1a0 = 0.
                 a1 = 0.
                 a0 = 0.
                 for i in range(len(pred)):
                     if pred[i] == 1:
                         if sens[i, self.target_sens] == 1:
+                            y1a1 += 1
+                            a1 += 1
+                        else:
+                            y1a0 += 1
+                            a0 += 1
+                    else:
+                        if sens[i, self.target_sens] == 1:
                             a1 += 1
                         else:
                             a0 += 1
-                a1 /= len(pred)
-                a0 /= len(pred)
+                y1a1 /= a1
+                y1a0 /= a0
                 dp = abs(a1 - a0)
                 if test_storer is not None:
                     test_storer['clf'].append(loss.item())
