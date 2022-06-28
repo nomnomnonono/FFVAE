@@ -408,9 +408,9 @@ class MLPTrainer():
                             a1 += 1
                         else:
                             a0 += 1
-                y1a1 /= a1
+                y1a1 /= a1 
                 y1a0 /= a0
-                dp = abs(a1 - a0)
+                dp = abs(y1a1 - y1a0)
                 if test_storer is not None:
                     test_storer['clf'].append(loss.item())
                     # Acc, DP
