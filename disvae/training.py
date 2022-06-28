@@ -304,6 +304,8 @@ class MLPTrainer():
             self.losses_logger.log(epoch, train_storer)
             self.test_logger.log(epoch, test_storer)
             if self.flag:
+                self.model.cpu()
+                torch.save(self.model.state_dict(), os.path.join(self.save_dir, "mlp.pt"))
                 break
 
             #save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
