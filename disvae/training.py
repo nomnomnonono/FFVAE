@@ -267,8 +267,8 @@ class MLPTrainer():
         self.save_dir = save_dir
         self.is_progress_bar = is_progress_bar
         self.logger = logger
-        self.losses_logger = LossesLogger(os.path.join(self.save_dir, "mlp_train_losses.log"))
-        self.test_logger = LossesLogger(os.path.join(self.save_dir, "mlp_test_losses.log"))
+        self.losses_logger = LossesLogger(os.path.join(self.save_dir, "mlp_train_losses-{}.log".format(self.target_sens)))
+        self.test_logger = LossesLogger(os.path.join(self.save_dir, "mlp_test_losses-{}.log".format(self.target_sens)))
         self.logger.info("Training Device: {}".format(self.device))
         self.dp = DemographicParityLoss()
         self.loss = nn.BCEWithLogitsLoss()
@@ -308,7 +308,7 @@ class MLPTrainer():
             self.model.to(self.device)
             if self.flag:
                 self.model.cpu()
-                os.rename(os.path.join(self.save_dir, "mlp-{}.pt".format(epoch-5)), os.path.join(self.save_dir, "model.pt"))
+                os.rename(os.path.join(self.save_dir, "mlp-{}.pt".format(epoch-5)), os.path.join(self.save_dir, "mlp_{}.pt".format(self.target_sens)))
                 break
 
             #save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
