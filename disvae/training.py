@@ -343,7 +343,6 @@ class MLPTrainer():
                 loss = self.loss(logit.view(-1), label)
                 acc = sum((prob.view(-1) > 0.5) == label).float().item() / len(label)
                 dp = self.dp(data, logit, sens[:, self.target_sens])
-
                 if storer is not None:
                     storer['clf'].append(loss.item())
                     # Acc, DP
