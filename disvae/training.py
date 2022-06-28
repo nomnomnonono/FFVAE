@@ -252,7 +252,7 @@ class MLPTrainer():
         Whether to use a progress bar for training.
     """
 
-    def __init__(self, model, vae, optimizer,
+    def __init__(self, model, vae, optimizer, target_sens,
                  device=torch.device("cpu"),
                  logger=logging.getLogger(__name__),
                  save_dir="results",
@@ -262,6 +262,7 @@ class MLPTrainer():
         self.model = model.to(self.device)
         self.vae = vae.to(self.device)
         self.optimizer = optimizer
+        self.target_sens = target_sens
         self.save_dir = save_dir
         self.is_progress_bar = is_progress_bar
         self.logger = logger
@@ -297,7 +298,7 @@ class MLPTrainer():
                 epoch + 1, mean_epoch_loss, mean_epoch_acc, mean_epoch_dp))
             self.losses_logger.log(epoch, storer)
 
-            save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
+            #save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
 
         self.model.eval()
 
@@ -337,11 +338,11 @@ class MLPTrainer():
                 )
                 data = data.float()
                 latent = self.vae.sample_latent(data).detach()
-                latent[:, 1] = torch.randn_like(latent[:, 1])
+                latent[:, self.target_sens] = torch.randn_like(latent[:, 1])
                 logit, prob = self.model(latent, mode="train")
                 loss = self.loss(logit.view(-1), label)
                 acc = sum((prob.view(-1) > 0.5) == label).float().item() / len(label)
-                dp = self.dp(data, logit, sens[:, 1])
+                dp = self.dp(data, logit, sens[:, self.target_sens])
 
                 if storer is not None:
                     storer['clf'].append(loss.item())

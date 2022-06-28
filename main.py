@@ -277,7 +277,7 @@ def main(args):
         vae = init_specific_model(args.model_type, args.img_size, args.latent_dim, args.dataset, args.n_sens)
         vae.load_state_dict(torch.load(os.path.join("results", args.name, "model.pt")), strict=False)
 
-        trainer = MLPTrainer(model, vae, optimizer,
+        trainer = MLPTrainer(model, vae, optimizer, args.target_sens,
                           device=device,
                           logger=logger,
                           save_dir=exp_dir,
