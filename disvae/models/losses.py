@@ -401,8 +401,7 @@ class BtcvaeLoss(BaseLoss):
         std = (logvar / 2).exp()
         q_zIx = torch.distributions.Normal(mu, std)
         p_z = torch.distributions.Normal(torch.zeros_like(mu), torch.ones_like(std))
-        #dw_kl_loss = torch.distributions.kl_divergence(q_zIx, p_z).sum(1).mean()
-        dw_kl_loss = (log_prod_qzi - log_pz).mean()
+        dw_kl_loss = torch.distributions.kl_divergence(q_zIx, p_z).sum(1).mean()
 
         anneal_reg = (linear_annealing(0, 1, self.n_train_steps, self.steps_anneal)
                       if is_train else 1)
