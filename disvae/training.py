@@ -297,7 +297,7 @@ class MLPTrainer():
                 epoch + 1, mean_epoch_loss, mean_epoch_acc, mean_epoch_dp))
             self.losses_logger.log(epoch, storer)
 
-            save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
+            #save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
 
         self.model.eval()
 
@@ -342,7 +342,6 @@ class MLPTrainer():
                 loss = self.loss(logit.view(-1), label)
                 acc = sum((prob.view(-1) > 0.5) == label).float().item() / len(label)
                 dp = self.dp(data, logit, sens[:, 1])
-
                 if storer is not None:
                     storer['clf'].append(loss.item())
                     # Acc, DP
