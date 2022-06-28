@@ -376,6 +376,7 @@ class MLPTrainer():
         test_loss = 0.
         test_acc = 0.
         test_dp = 0.
+        test_d = 0.
         with trange(len(test_loader), **kwargs) as t:
             for _, (data, sens, label) in enumerate(test_loader):
                 data, sens, label = (
@@ -391,15 +392,31 @@ class MLPTrainer():
                 loss = self.loss(logit.view(-1), label)
                 acc = sum((prob.view(-1) > 0.5) == label).float().item() / len(label)
                 dp = self.dp(data, logit, sens[:, self.target_sens])
+                """
+                    dp raw
+                """
+                pred = prob.view(-1) > 0.5
+                a1 = 0.
+                a0 = 0.
+                for i in range(len(pred)):
+                    if pred[i] == 1:
+                        if sens[i, self.target_sens] == 1:
+                            a1 += 1
+                        else:
+                            a0 += 1
+                a1 /= len(pred)
+                a0 /= len(pred)
+                d = abs(a1 - a0)
                 if test_storer is not None:
                     test_storer['clf'].append(loss.item())
                     # Acc, DP
                     test_storer['acc'].append(acc)
                     test_storer['dp'].append(dp.item())
-
+                    test_storer['d'].append(d)
                 test_loss += loss.item()
                 test_acc += acc
                 test_dp += dp.item()
+                test_d += d
 
                 t.set_postfix(loss=loss.item())
                 t.update()
@@ -425,4 +442,5 @@ class MLPTrainer():
         mean_epoch_loss = epoch_loss / len(data_loader)
         mean_epoch_acc = epoch_acc / len(data_loader)
         mean_epoch_dp = epoch_dp / len(data_loader)
-        return mean_epoch_loss, mean_epoch_acc, mean_epoch_dp
+        #return mean_epoch_loss, mean_epoch_acc, mean_epoch_dp
+        return test_loss, test_acc, test_dp
