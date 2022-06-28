@@ -1,3 +1,4 @@
+from cgi import test
 import imageio
 import logging
 import os
@@ -267,13 +268,16 @@ class MLPTrainer():
         self.is_progress_bar = is_progress_bar
         self.logger = logger
         self.losses_logger = LossesLogger(os.path.join(self.save_dir, "mlp_train_losses.log"))
+        self.test_logger = LossesLogger(os.path.join(self.save_dir, "mlp_test_losses.log"))
         self.logger.info("Training Device: {}".format(self.device))
         self.dp = DemographicParityLoss()
         self.loss = nn.BCEWithLogitsLoss()
+        self.min_val = None
+        self.count = 0
+        self.flag = False
 
     def __call__(self, data_loader,
-                 epochs=10,
-                 checkpoint_every=10):
+                 epochs=10):
         """
         Trains the model.
 
@@ -292,11 +296,15 @@ class MLPTrainer():
         self.vae.eval()
 
         for epoch in range(epochs):
-            storer = defaultdict(list)
-            mean_epoch_loss, mean_epoch_acc, mean_epoch_dp = self._mlp_train_epoch(data_loader, storer, epoch)
+            train_storer = defaultdict(list)
+            test_storer = defaultdict(list)
+            mean_epoch_loss, mean_epoch_acc, mean_epoch_dp = self._mlp_train_epoch(data_loader, train_storer, test_storer, epoch)
             self.logger.info('Epoch: {} Average loss per image: {:.4f}. acc: {:.4f}. dp: {:.4f}'.format(
                 epoch + 1, mean_epoch_loss, mean_epoch_acc, mean_epoch_dp))
-            self.losses_logger.log(epoch, storer)
+            self.losses_logger.log(epoch, train_storer)
+            self.test_logger.log(epoch, test_storer)
+            if self.flag:
+                break
 
             #save_model(self.model, self.save_dir, filename="mlp-{}.pt".format(epoch+1))
 
@@ -305,7 +313,7 @@ class MLPTrainer():
         delta_time = (default_timer() - start) / 60
         self.logger.info('Finished training after {:.1f} min.'.format(delta_time))
 
-    def _mlp_train_epoch(self, data_loader, storer, epoch):
+    def _mlp_train_epoch(self, data_loader, test_loader, train_storer, test_storer, epoch):
         """
         Trains the model for one epoch.
 
@@ -338,16 +346,16 @@ class MLPTrainer():
                 )
                 data = data.float()
                 latent = self.vae.sample_latent(data).detach()
-                latent[:, self.target_sens] = torch.randn_like(latent[:, 1])
+                latent[:, self.target_sens] = torch.randn_like(latent[:, self.target_sens])
                 logit, prob = self.model(latent, mode="train")
                 loss = self.loss(logit.view(-1), label)
                 acc = sum((prob.view(-1) > 0.5) == label).float().item() / len(label)
                 dp = self.dp(data, logit, sens[:, self.target_sens])
-                if storer is not None:
-                    storer['clf'].append(loss.item())
+                if train_storer is not None:
+                    train_storer['clf'].append(loss.item())
                     # Acc, DP
-                    storer['acc'].append(acc)
-                    storer['dp'].append(dp.item())
+                    train_storer['acc'].append(acc)
+                    train_storer['dp'].append(dp.item())
 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -359,6 +367,55 @@ class MLPTrainer():
 
                 t.set_postfix(loss=loss.item())
                 t.update()
+        
+        test_loss = 0.
+        test_acc = 0.
+        test_dp = 0.
+        with trange(len(test_loader), **kwargs) as t:
+            for _, (data, sens, label) in enumerate(test_loader):
+                data, sens, label = (
+                    data.to(self.device),
+                    sens.to(self.device),
+                    label.to(self.device)
+                )
+                data = data.float()
+                latent = self.vae.sample_latent(data).detach()
+                latent[:, self.target_sens] = torch.randn_like(latent[:, self.target_sens])
+                self.model.eval()
+                logit, prob = self.model(latent, mode="train")
+                loss = self.loss(logit.view(-1), label)
+                acc = sum((prob.view(-1) > 0.5) == label).float().item() / len(label)
+                dp = self.dp(data, logit, sens[:, self.target_sens])
+                if test_storer is not None:
+                    test_storer['clf'].append(loss.item())
+                    # Acc, DP
+                    test_storer['acc'].append(acc)
+                    test_storer['dp'].append(dp.item())
+
+                test_loss += loss.item()
+                test_acc += acc
+                test_dp += dp.item()
+
+                t.set_postfix(loss=loss.item())
+                t.update()
+            test_loss = test_loss / len(test_loader)
+            test_acc = test_acc / len(test_loader)
+            test_dp = test_dp / len(test_loader)
+
+            if self.min_val is None:
+                self.min_val = test_loss
+                self.count += 1
+            else:
+                if test_loss < self.min_val:
+                    self.min_val = test_loss
+                    self.count = 0
+                else:
+                    self.count += 1
+            if self.count > 4:
+                self.flag = True
+
+            self.model.train()
+
 
         mean_epoch_loss = epoch_loss / len(data_loader)
         mean_epoch_acc = epoch_acc / len(data_loader)

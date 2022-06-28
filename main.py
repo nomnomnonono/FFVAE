@@ -263,6 +263,9 @@ def main(args):
         train_loader = get_dataloaders(args.dataset, 'val',
                                        batch_size=args.batch_size,
                                        logger=logger)
+        test_loader = get_dataloaders(args.dataset, 'test',
+                                       batch_size=args.eval_batch_size,
+                                       logger=logger)
         logger.info("MLP Train {} with {} samples".format(args.dataset, len(train_loader.dataset)))
 
         # PREPARES MODEL
@@ -283,9 +286,8 @@ def main(args):
                           save_dir=exp_dir,
                           is_progress_bar=not args.no_progress_bar)
         
-        trainer(train_loader,
-                epochs=args.mlp_epochs,
-                checkpoint_every=args.checkpoint_every,)
+        trainer(train_loader, test_loader,
+                epochs=args.mlp_epochs)
         
 
 
