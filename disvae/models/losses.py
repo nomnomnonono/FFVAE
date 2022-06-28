@@ -353,7 +353,7 @@ class BtcvaeLoss(BaseLoss):
                  alpha=1.,
                  beta=6.,
                  gamma=1.,
-                 is_mss=False,
+                 is_mss=True,
                  disc_kwargs={},
                  optim_kwargs=dict(lr=5e-5, betas=(0.5, 0.9)), **kwargs):
         super().__init__(**kwargs)
