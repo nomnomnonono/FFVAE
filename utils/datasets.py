@@ -252,9 +252,9 @@ class CelebA(DisentangledDataset):
     def __init__(self, which_set, root=os.path.join("data", "CelebA", "img_align_celeba"), **kwargs):
         print(root)
         super().__init__(root, [transforms.ToTensor()], **kwargs)
+        self.which_set = which_set
         if which_set == 'train':
             self.imgs = glob.glob(os.path.join(root, 'train') + '/*')
-            print(len(self.imgs))
         elif which_set == 'val':
             self.imgs = glob.glob(os.path.join(root, 'val') + '/*')
         elif which_set == 'test':
@@ -289,6 +289,10 @@ class CelebA(DisentangledDataset):
         # no label so return 0 (note that can't return None because)
         # dataloaders requires so
         # return input, sens, label
+        if self.which_set == "val":
+            idx += 162770
+        elif self.which_set == "test":
+            idx += 182637 
         sens = np.array(self.labels.iloc[idx][["Chubby", "Eyeglasses", "Male"]], dtype="float")
         label = np.array(self.labels.iloc[idx]["Heavy_Makeup"], dtype="float")
         return img, sens, label
