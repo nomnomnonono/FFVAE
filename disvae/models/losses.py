@@ -374,10 +374,10 @@ class BtcvaeLoss(BaseLoss):
         rec_loss = _reconstruction_loss(data, recon_batch,
                                         storer=storer,
                                         distribution=self.rec_dist)
-        log_pz, log_qz, log_prod_qzi, log_q_zCx = _get_log_pz_qz_prodzi_qzCx(latent_sample,
+        """log_pz, log_qz, log_prod_qzi, log_q_zCx = _get_log_pz_qz_prodzi_qzCx(latent_sample,
                                                                              latent_dist,
                                                                              self.n_data,
-                                                                             is_mss=self.is_mss)
+                                                                             is_mss=self.is_mss)"""
         
         n_sens = sens.shape[1]
         sens_idx = list(range(n_sens))
@@ -405,7 +405,7 @@ class BtcvaeLoss(BaseLoss):
 
         anneal_reg = (linear_annealing(0, 1, self.n_train_steps, self.steps_anneal)
                       if is_train else 1)
-        clf_loss_mean = (clf_loss[0] + clf_loss[1]) / 2.
+        clf_loss_mean = torch.stack(clf_loss).mean()
         # total loss
         loss = rec_loss + (self.alpha * clf_loss_mean +
                            self.gamma* tc_loss +
