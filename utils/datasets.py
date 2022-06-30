@@ -254,11 +254,14 @@ class CelebA(DisentangledDataset):
         super().__init__(root, [transforms.ToTensor()], **kwargs)
         self.which_set = which_set
         if which_set == 'train':
-            self.imgs = glob.glob(os.path.join(root, 'train') + '/*').sort()
+            self.imgs = glob.glob(os.path.join(root, 'train') + '/*')
+            self.imgs.sort()
         elif which_set == 'val':
-            self.imgs = glob.glob(os.path.join(root, 'val') + '/*').sort()
+            self.imgs = glob.glob(os.path.join(root, 'val') + '/*')
+            self.imgs.sort()
         elif which_set == 'test':
-            self.imgs = glob.glob(os.path.join(root, 'test') + '/*').sort()
+            self.imgs = glob.glob(os.path.join(root, 'test') + '/*')
+            self.imgs.sort()
         else:
             pass
         self.labels = os.path.join(os.path.join(root, 'label.txt'))
