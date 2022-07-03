@@ -296,8 +296,10 @@ class CelebA(DisentangledDataset):
             idx += 162770
         elif self.which_set == "test":
             idx += 182637 
-        sens = np.array(self.labels.iloc[idx][["Chubby", "Eyeglasses", "Male"]], dtype="float")
-        label = np.array(self.labels.iloc[idx]["Heavy_Makeup"], dtype="float")
+        #sens = np.array(self.labels.iloc[idx][["Chubby", "Eyeglasses", "Male"]], dtype="float")
+        sens = np.array([self.labels.iloc[idx]["Male"]], dtype="float")
+        #label = np.array(self.labels.iloc[idx]["Heavy_Makeup"], dtype="float")
+        label = np.array(self.labels.iloc[idx]["Smiling"], dtype="float")
         return img, sens, label
 
 

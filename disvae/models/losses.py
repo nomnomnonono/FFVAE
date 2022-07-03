@@ -382,12 +382,11 @@ class BtcvaeLoss(BaseLoss):
         n_sens = sens.shape[1]
         sens_idx = list(range(n_sens))
         nonsens_idx = list(range(n_sens+1, 10))
-        
         # I[z;x] = KL[q(z,x)||q(x)q(z)] = E_x[KL[q(z|x)||q(z)]]
         clf_loss = [
             nn.BCEWithLogitsLoss()(_b_logit.to(self.device), _a_sens.to(self.device))
             for _b_logit, _a_sens in zip(
-                latent_sample[:, sens_idx].squeeze().t(), sens.type(torch.FloatTensor).t()  # not flexible
+                latent_sample[:, sens_idx].squeeze().t(), sens.type(torch.FloatTensor).squeeze().t()  # not flexible
             )
         ]
         # TC[z] = KL[q(z)||\prod_i z_i]
