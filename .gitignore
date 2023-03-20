@@ -1,0 +1,6 @@
+label/
+data/
+__pycache__
+poetry.toml
+results/
+*.zip
